@@ -1,0 +1,129 @@
+// time stamp: 02/23/23 17:40 (14/15 test cases)
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Scanner;
+
+public class PA3Main {
+	// make getters and setters
+	Scanner scanner;
+	public static int rows;
+	public static int columns;
+	static String prompt;
+	static String[] parsedLine;
+	public static Garden garden;
+	private static HashMap<String, ArrayList<String>> registrar;
+	
+	private static void simonSays(String fileLine) {
+		// check if length is between 1 and 3 maybe !! if not exit method
+		parsedLine = fileLine.split(" ".toLowerCase()); // changed this
+		
+		String action = parsedLine[0];
+
+		if ("plant".equals(action)) {
+			try {
+				String[] coordStr = parsedLine[1].replaceAll("[()]", "").split(",");
+				int[] coords = {Integer.parseInt(coordStr[0]), Integer.parseInt(coordStr[1])};
+				if (coords.length == 2 && !"ignored".equals(plantCaller(parsedLine[2])) && (Garden.gardenLayout[coords[0]][coords[1]] == null)) {
+					String plantName = parsedLine[2];
+					Garden.plantCrops(coords, plantName);
+				}
+			} catch (Exception n) {}
+		} 
+
+		else if ("grow".equals(action)) { // note that there was ArrayOOBE from below that went through grow(int,str)
+			commandPrinter(parsedLine, action);
+			try {
+				
+				int growPrompt = Integer.parseInt(parsedLine[1]);
+				if (parsedLine.length == 2)
+					garden.grow(growPrompt);
+				if (parsedLine.length == 3) {
+					if (registrar.keySet().contains(parsedLine[2]))
+						garden.grow(growPrompt, parsedLine[2]);
+					else if (parsedLine[2].contains("(")) {
+						String[] coordStr = parsedLine[2].replaceAll("[()]", "").split(",");
+						int[] coords = {Integer.parseInt(coordStr[0]), Integer.parseInt(coordStr[1])};
+						garden.grow(coords, growPrompt);
+					}
+				}
+			}  catch (NumberFormatException n){} // worth checking (at least clarifying)
+			catch (IllegalArgumentException | ArrayIndexOutOfBoundsException n) {
+				if (parsedLine.length > 2 && registrar.get(parsedLine[2]) != null)
+					garden.grow(Integer.parseInt(parsedLine[1]), parsedLine[2]);
+				else
+					System.out.println("Can't grow there.\n");
+				// im not sure what he wants here, in cases of discrimination
+			} 
+
+		} else if ("harvest".equals(action) || "pick".equals(action) || "cut".equals(action)) { 
+			commandPrinter(parsedLine, action);
+			try { // could try in length xx or for thing in thing print thing 
+				int[] pi = { 3, 1, 4 };
+				if (parsedLine.length == 1)
+					garden.exterminate(pi, action, "total destruction");
+				else if (!"ignored".equals(plantCaller(parsedLine[1]))) { // does this work
+					// or if not correct type, may need to check whether the length is two
+					garden.exterminate(pi, action, parsedLine[1]);
+				} else if (parsedLine[1].contains("(")) {  // still doesn't check for (a, 1) maybe not space! or other weird coord stuff!
+					String[] coordStr = parsedLine[1].replaceAll("[()]", "").split(",");
+					int[] coords = {Integer.parseInt(coordStr[0]), Integer.parseInt(coordStr[1])};
+					garden.exterminate(coords, action, "precision attack");
+				}
+//				else 
+//					commandPrinter(parsedLine, action);
+					
+			} catch (IllegalArgumentException | NullPointerException e) {
+				System.out.println("Can't " + action + " there.\n");
+			}			
+		} else if ("print".equals(action))
+			System.out.printf("> PRINT\n%s\n", garden);
+	}
+
+	public static String plantCaller(String plantName) {
+		String plantType = "ignored";
+		for (String key : registrar.keySet()) {
+			if (registrar.get(key).contains(plantName))
+				return key;
+		} return plantType;
+	}
+	
+	public static void commandPrinter(String[] userInput, String action) {
+		// assumes good row & column input followed by blank line
+		String userCommand = "";
+		for (String command : parsedLine) {
+			if (command.equals(action))
+				userCommand += command.toUpperCase();
+			else
+				userCommand += " " + command;
+		}
+		System.out.printf("> %s\n\n", userCommand);
+	}
+
+	public static void main(String[] args) {
+
+		for (String fileName : args) {
+			try {
+	
+	//			 File file = new File("/home/gunna/java23/ArizonaJava/onerose1.txt");
+	//			 Scanner scanner = new Scanner(file);
+	//			 prompt = scanner.nextLine().split(" ")[1];
+			
+				Scanner scanner = new Scanner(new File(fileName));
+				prompt = scanner.nextLine().split(" ")[1];
+				rows = Integer.parseInt(prompt);
+				prompt = scanner.nextLine().split(" ")[1];
+				columns = Integer.parseInt(prompt);
+				garden = new Garden(rows, columns);
+				registrar = Garden.registrar;
+				scanner.nextLine(); 
+				while (scanner.hasNext()) {
+					prompt = scanner.nextLine().toLowerCase();
+					simonSays(prompt);
+				}
+				scanner.close();
+			} catch (IOException e) {}
+		}
+	}
+}
